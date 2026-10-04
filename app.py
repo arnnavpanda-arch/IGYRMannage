@@ -1,3 +1,8 @@
+import os
+import sys
+# Add the current directory to sys.path so Vercel can find the modules
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from database import get_db
