@@ -14,6 +14,27 @@ from datetime import datetime
 app = Flask(__name__)
 CORS(app)  # Enable CORS for frontend requests
 
+# Vercel WSGI Middleware to ensure PATH_INFO is correct
+class VercelWSGIMiddleware:
+    def __init__(self, app):
+        self.app = app
+    def __call__(self, environ, start_response):
+        # Vercel sometimes passes the route dest instead of the actual path
+        # Or strips /api
+        path = environ.get('PATH_INFO', '')
+        if not path.startswith('/api/'):
+            # If vercel stripped /api, prepend it back
+            environ['PATH_INFO'] = '/api' + path
+        elif path == '/backend/app.py' or path == '/api/index.py':
+            # If vercel passed the function filename, try to recover from REQUEST_URI
+            req_uri = environ.get('REQUEST_URI', '')
+            if req_uri:
+                environ['PATH_INFO'] = req_uri.split('?')[0]
+        return self.app(environ, start_response)
+
+app.wsgi_app = VercelWSGIMiddleware(app.wsgi_app)
+
+
 # Temporary in-memory store for OTPs (In a real app, use Redis or MongoDB with TTL)
 # Format: { "email@test.com": { "otp": "1234", "expires": timestamp } }
 otp_store = {}
